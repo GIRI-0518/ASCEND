@@ -1,0 +1,116 @@
+// use prisma-8
+
+model User {
+  id           String   @id @default(uuid())
+  clerkId      String   @unique
+  username     String   @unique
+  email        String   @unique
+  displayName  String
+  hunterRank   String   @default("E")
+  totalXp      Int      @default(0)
+  currentLevel Int      @default(1)
+  avatarUrl    String?
+  createdAt    TimestamptzString @default(now())
+  updatedAt    temporal.updatedAtString()
+
+  quests            Quest[]
+  questCompletions  QuestCompletion[]
+  inventoryItems    InventoryItem[]
+  shadowCompanions  ShadowCompanion[]
+  streakLogs        StreakLog[]
+
+  @@index([clerkId])
+  @@index([username])
+}
+
+model Quest {
+  id                String   @id @default(uuid())
+  userId            String
+  title             String
+  description       String?
+  attributeCategory String
+  verificationTier  Int      @default(1)
+  difficulty        String   @default("Normal")
+  status            String   @default("active")
+  isDaily           Boolean  @default(false)
+  xpReward          Int      @default(100)
+  createdAt         TimestamptzString @default(now())
+  updatedAt         temporal.updatedAtString()
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions      QuestCompletion[]
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
+model QuestCompletion {
+  id              String    @id @default(uuid())
+  questId         String
+  userId          String
+  completedAt     TimestamptzString @default(now())
+  proofUrl        String?
+  verifiedBy      String    @default("self")
+  xpAwarded       Int
+  lootRollRarity  String?
+  lootItemId      String?
+
+  quest           Quest          @relation(fields: [questId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lootItem        InventoryItem? @relation(fields: [lootItemId], references: [id])
+
+  @@index([userId])
+  @@index([userId, completedAt])
+}
+
+model InventoryItem {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  rarity      String
+  itemType    String
+  equipped    Boolean  @default(false)
+  iconEmoji   String   @default("⚔️")
+  statsJson   String?
+  acquiredAt  TimestamptzString @default(now())
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions QuestCompletion[]
+
+  @@index([userId])
+  @@index([userId, equipped])
+}
+
+model ShadowCompanion {
+  id               String   @id @default(uuid())
+  userId           String
+  name             String
+  title            String
+  attributeAffinity String
+  level            Int      @default(1)
+  state            String   @default("active")
+  iconEmoji        String   @default("👤")
+  description      String?
+  unlockedAt       TimestamptzString @default(now())
+  lastActivityAt   TimestamptzString @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model StreakLog {
+  id              String    @id @default(uuid())
+  userId          String
+  questCategory   String
+  currentStreak   Int       @default(0)
+  longestStreak   Int       @default(0)
+  lastCompletedAt TimestamptzString?
+  updatedAt       temporal.updatedAtString()
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questCategory])
+  @@index([userId])
+}
